@@ -12,11 +12,11 @@ namespace FMS_PNP.Models
         public string Address { get; set; }
     }
 
-    // Модель CustomerTransaction
+
     public class CustomerTransaction
     {
         public int Id { get; set; }
-        public string FullName { get; set; } // связь с клиентом может быть на основе FullName или Id (рекомендуется использовать Id)
+        public string FullName { get; set; } 
         public DateTime Date { get; set; }
         public decimal Amount { get; set; }
     }
