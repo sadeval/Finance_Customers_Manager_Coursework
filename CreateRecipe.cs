@@ -69,7 +69,7 @@ namespace FMS_PNP
                             doc.Open();
 
                             // Загрузка изображения логотипа
-                            string logoPath = @"D:\Logo.png"; // Указываем фактический путь к логотипу
+                            string logoPath = @"D:\SQL\FMS_PNP\IMG\Logo.png"; // Указываем фактический путь к логотипу
                             if (File.Exists(logoPath))
                             {
                                 iTextSharp.text.Image logo = iTextSharp.text.Image.GetInstance(logoPath);

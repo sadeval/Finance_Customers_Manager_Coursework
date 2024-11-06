@@ -38,7 +38,9 @@ namespace FMS_PNP
             txtPercent.Validating += txtPercent_Validating;
             txtOklad.KeyPress += txtOklad_KeyPress;
             txtPercent.KeyPress += txtPercent_KeyPress;
-            
+            cmbNameProd1.SelectedIndexChanged += new System.EventHandler(this.cmbNameProd1_SelectedIndexChanged);
+            cmbCategory1.SelectedIndexChanged += new System.EventHandler(this.cmbCategory1_SelectedIndexChanged);
+
         }
 
         private async void Admin_Dashboard_Load(object sender, EventArgs e)
@@ -57,6 +59,7 @@ namespace FMS_PNP
             customerGroupBox.Visible = false;
             AddProductsGrpBox.Visible = false;
             grpBoxProfile.Visible = false;
+            statics.Visible = false;
         }
 
         #region Методы для конвертера валют
@@ -575,7 +578,7 @@ namespace FMS_PNP
 
         #endregion
 
-        #region Методы для генерации отчетов
+        #region Метод для генерации чека
 
         private void btnGenerateReceipt_Click(object sender, EventArgs e)
         {
@@ -816,19 +819,35 @@ namespace FMS_PNP
                 {
                     await connection.OpenAsync();
                     string query = @"
+                    WITH DateRange AS (
+                        SELECT @StartDate AS DateValue
+                        UNION ALL
+                        SELECT DATEADD(DAY, 1, DateValue)
+                        FROM DateRange
+                        WHERE DATEADD(DAY, 1, DateValue) <= @EndDate
+                    )
                     SELECT 
-                        p.Name_of_Product AS ProductName, 
-                        SUM(t.Quantity) AS TotalQuantity, 
-                        SUM(t.Summ) AS TotalSum
+                        dr.DateValue, 
+                        ISNULL(t.TotalQuantity, 0) AS TotalQuantity, 
+                        ISNULL(t.TotalSum, 0) AS TotalSum
                     FROM 
-                        Transactions t
-                    INNER JOIN 
-                        Products p ON t.ProductId = p.ID
-                    WHERE 
-                        t.CustomerId = @CustomerId AND 
-                        t.Date BETWEEN @StartDate AND @EndDate
-                    GROUP BY 
-                        p.Name_of_Product";
+                        DateRange dr
+                    LEFT JOIN (
+                        SELECT 
+                            CAST(t.Date AS DATE) AS TransactionDate, 
+                            SUM(t.Quantity) AS TotalQuantity, 
+                            SUM(t.Summ) AS TotalSum
+                        FROM 
+                            Transactions t
+                        WHERE 
+                            t.CustomerId = @CustomerId AND 
+                            t.Date BETWEEN @StartDate AND @EndDate
+                        GROUP BY 
+                            CAST(t.Date AS DATE)
+                    ) t ON dr.DateValue = t.TransactionDate
+                    ORDER BY 
+                        dr.DateValue
+                    OPTION (MAXRECURSION 0)";
 
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
@@ -838,27 +857,23 @@ namespace FMS_PNP
 
                         using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                         {
-                            var productNames = new List<string>();
+                            var dateLabels = new List<string>();
                             var quantities = new List<double>();
                             var sums = new List<double>();
 
                             while (await reader.ReadAsync())
                             {
-                                productNames.Add(reader["ProductName"].ToString());
+                                DateTime date = reader.GetDateTime(reader.GetOrdinal("DateValue"));
+                                double totalQuantity = reader["TotalQuantity"] != DBNull.Value ? Convert.ToDouble(reader["TotalQuantity"]) : 0;
+                                double totalSum = reader["TotalSum"] != DBNull.Value ? Convert.ToDouble(reader["TotalSum"]) : 0;
 
-                                if (double.TryParse(reader["TotalQuantity"].ToString(), out double qty))
-                                    quantities.Add(qty);
-                                else
-                                    quantities.Add(0);
-
-                                if (double.TryParse(reader["TotalSum"].ToString(), out double sum))
-                                    sums.Add(sum);
-                                else
-                                    sums.Add(0);
+                                dateLabels.Add(date.ToString("dd.MM"));
+                                quantities.Add(totalQuantity);
+                                sums.Add(totalSum);
                             }
 
-                            // Настройка графика
-                            SetupCustomerChart(productNames, quantities, sums);
+                            // Передаем агрегированные данные в метод настройки графика
+                            SetupCustomerChart(dateLabels, quantities, sums);
                         }
                     }
                 }
@@ -869,10 +884,9 @@ namespace FMS_PNP
             }
         }
 
-
-        private void SetupCustomerChart(List<string> productNames, List<double> quantities, List<double> sums)
+        private void SetupCustomerChart(List<string> dateLabels, List<double> quantities, List<double> sums)
         {
-            if (productNames.Count == 0)
+            if (dateLabels == null || dateLabels.Count == 0)
             {
                 MessageBox.Show("Нет данных для отображения графика.", "Информация", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 cartesianChart2.Series.Clear();
@@ -880,30 +894,41 @@ namespace FMS_PNP
                 cartesianChart2.AxisY.Clear();
                 return;
             }
+
             // Очищаем предыдущие серии
             cartesianChart2.Series.Clear();
 
-            // Добавляем серию для количества
-            cartesianChart2.Series.Add(new LineSeries
+            // Создаем коллекцию серий с использованием алиаса
+            var seriesCollection = new LiveCharts.SeriesCollection
             {
-                Title = "Количество",
-                Values = new ChartValues<double>(quantities)
-            });
+                new LineSeries
+                {
+                    Title = "Количество",
+                    Values = new ChartValues<double>(quantities),
+                    PointGeometry = DefaultGeometries.Circle,
+                    PointGeometrySize = 8,
+                    StrokeThickness = 2
+                },
+                new LineSeries
+                {
+                    Title = "Сумма",
+                    Values = new LiveCharts.ChartValues<double>(sums),
+                    PointGeometry = DefaultGeometries.Square,
+                    PointGeometrySize = 8,
+                    StrokeThickness = 2
+                }
+            };
 
-            // Добавляем серию для суммы
-            cartesianChart2.Series.Add(new LineSeries
-            {
-                Title = "Сумма",
-                Values = new ChartValues<double>(sums)
-            });
+            cartesianChart2.Series = seriesCollection;
 
             // Настройка оси X
             cartesianChart2.AxisX.Clear();
             cartesianChart2.AxisX.Add(new LiveCharts.Wpf.Axis
             {
-                Title = "Товар",
-                Labels = productNames,
-                LabelsRotation = 15
+                //Title = "Дата",
+                Labels = dateLabels,
+                LabelsRotation = 15,
+                Separator = new LiveCharts.Wpf.Separator { Step = 1 }
             });
 
             // Настройка оси Y
@@ -911,11 +936,12 @@ namespace FMS_PNP
             cartesianChart2.AxisY.Add(new LiveCharts.Wpf.Axis
             {
                 Title = "Значение",
-                LabelFormatter = value => value.ToString("N")
+                //LabelFormatter = value => value.ToString("N"),
+                //Separator = new LiveCharts.Wpf.Separator { Step = 10 }
             });
 
             // Настройка легенды
-            cartesianChart2.LegendLocation = LegendLocation.Top;
+            cartesianChart2.LegendLocation = LiveCharts.LegendLocation.Top;
         }
 
         #endregion

@@ -267,7 +267,7 @@ namespace FMS_PNP
             this.textBox1.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.textBox1.Font = new System.Drawing.Font("Segoe UI", 10.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.textBox1.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.textBox1.Location = new System.Drawing.Point(76, 508);
+            this.textBox1.Location = new System.Drawing.Point(77, 508);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.Size = new System.Drawing.Size(173, 27);
@@ -1109,7 +1109,6 @@ namespace FMS_PNP
             this.cmbNameProd1.Size = new System.Drawing.Size(226, 31);
             this.cmbNameProd1.TabIndex = 8;
             this.cmbNameProd1.Text = "Наименование";
-            this.cmbNameProd1.SelectedIndexChanged += cmbNameProd1_SelectedIndexChanged;
             // 
             // cmbCategory1
             // 
@@ -1122,7 +1121,6 @@ namespace FMS_PNP
             this.cmbCategory1.Size = new System.Drawing.Size(226, 31);
             this.cmbCategory1.TabIndex = 7;
             this.cmbCategory1.Text = "Категория";
-            this.cmbCategory1.SelectedIndexChanged += new System.EventHandler(this.cmbCategory1_SelectedIndexChanged);
             // 
             // lblBillGrn
             // 
@@ -1316,7 +1314,7 @@ namespace FMS_PNP
             this.dgvCustomerTransactions.ReadOnly = true;
             this.dgvCustomerTransactions.RowHeadersWidth = 51;
             this.dgvCustomerTransactions.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
-            this.dgvCustomerTransactions.Size = new System.Drawing.Size(667, 250);
+            this.dgvCustomerTransactions.Size = new System.Drawing.Size(667, 203);
             this.dgvCustomerTransactions.TabIndex = 4;
             // 
             // lblDateEnd
@@ -1339,9 +1337,9 @@ namespace FMS_PNP
             // 
             // cartesianChart2
             // 
-            this.cartesianChart2.Location = new System.Drawing.Point(349, 287);
+            this.cartesianChart2.Location = new System.Drawing.Point(349, 230);
             this.cartesianChart2.Name = "cartesianChart2";
-            this.cartesianChart2.Size = new System.Drawing.Size(667, 191);
+            this.cartesianChart2.Size = new System.Drawing.Size(667, 248);
             this.cartesianChart2.TabIndex = 6;
             this.cartesianChart2.Text = "cartesianChart2";
             // 
